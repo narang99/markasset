@@ -1,6 +1,10 @@
 {
   "name": "markasset",
   "displayName": "MarkAsset",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/username/repository.git"
+  },
   "description": "Streamline adding images to markdown documents with upload codes",
   "version": "0.0.1",
   "engines": {

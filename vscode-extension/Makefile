@@ -38,7 +38,7 @@ clean-all: clean
 	rm -rf node_modules
 
 # Package extension as .vsix file
-package: clean, build
+package: clean
 	@if ! command -v vsce >/dev/null 2>&1; then \
 		echo "Installing vsce (Visual Studio Code Extension manager)..."; \
 		npm install -g vsce; \
@@ -46,9 +46,8 @@ package: clean, build
 	vsce package
 
 # Install extension locally in VSCode
-install-local: clean, build
+install-local: clean
 	@echo "Installing MarkAsset extension locally..."
-	rm -f *.vsix
 	@if [ -f *.vsix ]; then \
 		echo "Found existing .vsix file, installing..."; \
 		code --install-extension *.vsix; \
