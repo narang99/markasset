@@ -1,3 +1,39 @@
+:root {
+  /* Gruvbox Light Palette */
+  --bg: #f2e5bc;
+  --bg1: #ebdbb2;
+  --bg2: #d5c4a1;
+  --bg3: #bdae93;
+  --bg4: #a89984;
+  --bg5: #928374;
+
+  --fg: #3c3836;
+  --fg1: #504945;
+  --fg2: #665c54;
+  --fg3: #7c6f64;
+  
+  --red: #cc241d;
+  --red-dim: #9d0006;
+  --green: #98971a;
+  --green-dim: #79740e;
+  --yellow: #d79921;
+  --yellow-dim: #b57614;
+  --blue: #458588;
+  --blue-dim: #076678;
+  --purple: #b16286;
+  --purple-dim: #8f3f71;
+  --aqua: #689d6a;
+  --aqua-dim: #427b58;
+  --orange: #d65d0e;
+  --orange-dim: #af3a03;
+  
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  /* Borders */
+  --border-radius: 8px;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -5,8 +41,8 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: var(--font-sans);
+  background: var(--bg);
   min-height: 100vh;
   padding: 20px;
 }
@@ -14,15 +50,16 @@ body {
 .container {
   max-width: 480px;
   margin: 0 auto;
-  background: white;
+  background: var(--bg1);
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  box-shadow: 0 20px 40px rgba(60, 56, 54, 0.1);
   overflow: hidden;
+  border: 2px solid var(--bg3);
 }
 
 header {
-  background: #2196F3;
-  color: white;
+  background: var(--blue);
+  color: var(--bg);
   padding: 32px 24px;
   text-align: center;
 }
@@ -49,55 +86,61 @@ label {
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #333;
+  color: var(--fg);
 }
 
 input[type="text"] {
   width: 100%;
   padding: 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  border: 2px solid var(--bg3);
+  border-radius: var(--border-radius);
   font-size: 18px;
   text-align: center;
   letter-spacing: 4px;
   transition: border-color 0.2s;
+  background: var(--bg);
+  color: var(--fg);
 }
 
 input[type="text"]:focus {
   outline: none;
-  border-color: #2196F3;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(69, 133, 136, 0.2);
 }
 
 input[type="file"] {
   width: 100%;
   padding: 16px;
-  border: 2px dashed #e0e0e0;
-  border-radius: 8px;
+  border: 2px dashed var(--bg3);
+  border-radius: var(--border-radius);
   cursor: pointer;
   transition: border-color 0.2s;
+  background: var(--bg);
+  color: var(--fg);
 }
 
 input[type="file"]:hover {
-  border-color: #2196F3;
+  border-color: var(--blue);
 }
 
 .file-info {
   margin-top: 12px;
   padding: 12px;
-  background: #f5f5f5;
-  border-radius: 8px;
+  background: var(--bg2);
+  border-radius: var(--border-radius);
   font-size: 14px;
-  color: #666;
+  color: var(--fg2);
   display: none;
+  border: 1px solid var(--bg3);
 }
 
 button {
   width: 100%;
   padding: 18px;
-  background: #2196F3;
-  color: white;
+  background: var(--blue);
+  color: var(--bg);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--border-radius);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -105,11 +148,12 @@ button {
 }
 
 button:hover:not(:disabled) {
-  background: #1976D2;
+  background: var(--blue-dim);
 }
 
 button:disabled {
-  background: #ccc;
+  background: var(--bg4);
+  color: var(--fg3);
   cursor: not-allowed;
 }
 
@@ -124,14 +168,14 @@ button:disabled {
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: #e0e0e0;
+  background: var(--bg3);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: #4CAF50;
+  background: var(--green);
   width: 0%;
   transition: width 0.3s ease;
 }
@@ -140,7 +184,7 @@ button:disabled {
   text-align: center;
   margin-top: 8px;
   font-weight: 600;
-  color: #333;
+  color: var(--fg);
 }
 
 .status {
@@ -149,18 +193,18 @@ button:disabled {
 
 .status-success {
   padding: 16px;
-  background: #E8F5E8;
-  color: #2E7D2E;
-  border-radius: 8px;
-  border-left: 4px solid #4CAF50;
+  background: rgba(152, 151, 26, 0.1);
+  color: var(--green-dim);
+  border-radius: var(--border-radius);
+  border-left: 4px solid var(--green);
 }
 
 .status-error {
   padding: 16px;
-  background: #FFF3F3;
-  color: #C62828;
-  border-radius: 8px;
-  border-left: 4px solid #F44336;
+  background: rgba(204, 36, 29, 0.1);
+  color: var(--red-dim);
+  border-radius: var(--border-radius);
+  border-left: 4px solid var(--red);
 }
 
 @media (max-width: 480px) {
