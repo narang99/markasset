@@ -114,13 +114,33 @@ input[type="file"] {
   border: 2px dashed var(--bg3);
   border-radius: var(--border-radius);
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
   background: var(--bg);
   color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 16px;
 }
 
 input[type="file"]:hover {
   border-color: var(--blue);
+  background: var(--bg2);
+}
+
+input[type="file"]::file-selector-button {
+  background: var(--blue);
+  color: var(--bg);
+  border: none;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 16px;
+  transition: background-color 0.2s;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: var(--blue-dim);
 }
 
 .file-info {
