@@ -1,27 +1,11 @@
-const CACHE_NAME = 'markasset-v1';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/manifest.json'
-];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
-  );
-});
-
+// Service Worker for Share Target handling only
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
-  );
+  // Handle share target POST requests
+  if (event.request.method === 'POST') {
+    event.respondWith(Response.redirect('./'));
+    return;
+  }
+  
+  // Let other requests pass through normally
+  event.respondWith(fetch(event.request));
 });

@@ -128,6 +128,9 @@ export class UploadSessionWebview {
         );
         this.updateWebview('completed', `Downloaded ${downloadedFiles.length} files successfully`);
         
+        // Cleanup session after successful download
+        await this.firebaseService.deleteSession(this.currentSessionCode);
+        
         // Auto-close after success
         setTimeout(() => this.dispose(), 2000);
       } else {

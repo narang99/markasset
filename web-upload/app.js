@@ -31,6 +31,7 @@ class UploadManager {
     
     this.initializeEventListeners();
     this.checkForCodeInURL();
+    this.handleSharedFiles();
   }
   
   initializeEventListeners() {
@@ -45,6 +46,36 @@ class UploadManager {
     if (code && /^\d{3}$/.test(code)) {
       this.sessionCodeInput.value = code;
       this.validateForm();
+    }
+  }
+  
+  handleSharedFiles() {
+    // Handle files shared via Web Share Target API
+    if (navigator.share && 'launchQueue' in window) {
+      window.launchQueue.setConsumer(launchParams => {
+        if (launchParams.files && launchParams.files.length > 0) {
+          // Convert shared files to FileList for the file input
+          const dt = new DataTransfer();
+          launchParams.files.forEach(file => dt.items.add(file));
+          this.fileInput.files = dt.files;
+          this.handleFileChange();
+          
+          // Show a message about shared files
+          this.statusSection.innerHTML = `
+            <div class="status-success">
+              📱 ${launchParams.files.length} image(s) shared! Enter your 3-digit code to upload.
+            </div>
+          `;
+          this.statusSection.style.display = 'block';
+        }
+      });
+    }
+    
+    // Alternative: Check for form data in POST request (older browsers)
+    if (window.location.search.includes('shared_files')) {
+      const formData = new FormData();
+      // This would be populated by the browser from the share target
+      console.log('Files shared via form data');
     }
   }
   

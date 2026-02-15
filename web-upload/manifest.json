@@ -2,24 +2,38 @@
   "name": "MarkAsset Upload",
   "short_name": "MarkAsset",
   "description": "Upload images with 3-digit codes for markdown documents",
-  "start_url": "/",
+  "start_url": "/index.html",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2196F3",
   "orientation": "portrait",
   "categories": ["productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "share_target": {
+    "action": "/",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "shared_files",
+          "accept": ["image/*"]
+        }
+      ]
+    }
+  },
   "icons": [
     {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     },
     {
-      "src": "icon-512.png", 
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
     }
   ]
 }

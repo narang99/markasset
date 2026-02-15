@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, Timestamp } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, Timestamp, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { getFirebaseApp, USER_ID, SESSION_TTL_HOURS } from './config';
 
 interface SessionData {
@@ -32,7 +32,7 @@ export class FirebaseService {
     }
   }
 
-  async checkSession(code: string): Promise<{ exists: boolean; status?: string; files?: string[] }> {
+  async checkSession(code: string): Promise<{ exists: boolean; status?: string; files?: any[] }> {
     try {
       const sessionRef = doc(this.db, 'users', USER_ID, 'sessions', code);
       const sessionSnap = await getDoc(sessionRef);
@@ -43,10 +43,18 @@ export class FirebaseService {
       
       const sessionData = sessionSnap.data() as SessionData;
       
+      // Get actual file details from files collection
+      const filesQuery = query(
+        collection(this.db, 'users', USER_ID, 'files'),
+        where('session_code', '==', code)
+      );
+      const filesSnap = await getDocs(filesQuery);
+      const files = filesSnap.docs.map(doc => doc.data());
+      
       return {
         exists: true,
         status: sessionData.status,
-        files: sessionData.files
+        files: files
       };
     } catch (error: any) {
       console.error('Session check failed:', error);
@@ -94,6 +102,29 @@ export class FirebaseService {
     };
     
     await setDoc(sessionRef, sessionData);
+  }
+
+  async deleteSession(code: string): Promise<void> {
+    try {
+      // Delete session document
+      const sessionRef = doc(this.db, 'users', USER_ID, 'sessions', code);
+      await deleteDoc(sessionRef);
+      
+      // Delete associated files documents
+      const filesQuery = query(
+        collection(this.db, 'users', USER_ID, 'files'),
+        where('session_code', '==', code)
+      );
+      const filesSnap = await getDocs(filesQuery);
+      
+      const deletePromises = filesSnap.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      
+      console.log(`Cleaned up session ${code} and ${filesSnap.docs.length} associated files`);
+    } catch (error: any) {
+      console.error('Session cleanup failed:', error);
+      // Don't throw - cleanup is best effort
+    }
   }
 
   private generateLocalCode(): string {
