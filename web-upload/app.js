@@ -28,18 +28,17 @@ class UploadManager {
     this.progressFill = document.getElementById('progressFill');
     this.progressText = document.getElementById('progressText');
     this.statusSection = document.getElementById('statusSection');
-    
+
     this.initializeEventListeners();
     this.checkForCodeInURL();
-    this.handleSharedFiles();
   }
-  
+
   initializeEventListeners() {
     this.form.addEventListener('submit', (e) => this.handleSubmit(e));
     this.fileInput.addEventListener('change', () => this.handleFileChange());
     this.sessionCodeInput.addEventListener('input', () => this.validateForm());
   }
-  
+
   checkForCodeInURL() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
@@ -48,37 +47,7 @@ class UploadManager {
       this.validateForm();
     }
   }
-  
-  handleSharedFiles() {
-    // Handle files shared via Web Share Target API
-    if (navigator.share && 'launchQueue' in window) {
-      window.launchQueue.setConsumer(launchParams => {
-        if (launchParams.files && launchParams.files.length > 0) {
-          // Convert shared files to FileList for the file input
-          const dt = new DataTransfer();
-          launchParams.files.forEach(file => dt.items.add(file));
-          this.fileInput.files = dt.files;
-          this.handleFileChange();
-          
-          // Show a message about shared files
-          this.statusSection.innerHTML = `
-            <div class="status-success">
-              📱 ${launchParams.files.length} image(s) shared! Enter your 3-digit code to upload.
-            </div>
-          `;
-          this.statusSection.style.display = 'block';
-        }
-      });
-    }
-    
-    // Alternative: Check for form data in POST request (older browsers)
-    if (window.location.search.includes('shared_files')) {
-      const formData = new FormData();
-      // This would be populated by the browser from the share target
-      console.log('Files shared via form data');
-    }
-  }
-  
+
   handleFileChange() {
     const files = this.fileInput.files;
     if (files.length > 0) {
@@ -90,19 +59,19 @@ class UploadManager {
     }
     this.validateForm();
   }
-  
+
   validateForm() {
     const hasCode = /^\d{3}$/.test(this.sessionCodeInput.value);
     const hasFiles = this.fileInput.files.length > 0;
     this.uploadBtn.disabled = !hasCode || !hasFiles;
   }
-  
+
   async handleSubmit(e) {
     e.preventDefault();
-    
+
     const sessionCode = this.sessionCodeInput.value;
     const files = Array.from(this.fileInput.files);
-    
+
     try {
       await this.validateSession(sessionCode);
       await this.uploadFiles(sessionCode, files);
@@ -112,32 +81,32 @@ class UploadManager {
       this.showError(error.message);
     }
   }
-  
+
   async validateSession(sessionCode) {
     const sessionRef = doc(db, 'users', USER_ID, 'sessions', sessionCode);
     const sessionSnap = await getDoc(sessionRef);
-    
+
     if (!sessionSnap.exists()) {
       throw new Error(`Session ${sessionCode} not found or expired`);
     }
-    
+
     const sessionData = sessionSnap.data();
     if (sessionData.status !== 'active') {
       throw new Error(`Session ${sessionCode} is no longer active`);
     }
   }
-  
+
   async uploadFiles(sessionCode, files) {
     this.showProgress();
-    
+
     const uploadedFileIds = [];
-    
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const progress = ((i + 1) / files.length) * 100;
-      
+
       this.updateProgress(progress, `Uploading ${file.name}...`);
-      
+
       try {
         const fileId = await this.uploadFile(sessionCode, file);
         uploadedFileIds.push(fileId);
@@ -146,18 +115,18 @@ class UploadManager {
         throw new Error(`Failed to upload ${file.name}: ${error.message}`);
       }
     }
-    
+
     await this.updateSessionFiles(sessionCode, uploadedFileIds);
     this.hideProgress();
   }
-  
+
   async uploadFile(sessionCode, file) {
     const fileId = this.generateFileId();
     const storagePath = `users/${USER_ID}/sessions/${sessionCode}/${fileId}`;
-    
+
     const storageRef = ref(storage, storagePath);
     await uploadBytes(storageRef, file);
-    
+
     const fileMetadata = {
       session_code: sessionCode,
       original_name: file.name,
@@ -166,50 +135,50 @@ class UploadManager {
       size: file.size,
       uploaded_at: new Date()
     };
-    
+
     const fileRef = doc(db, 'users', USER_ID, 'files', fileId);
     await setDoc(fileRef, fileMetadata);
-    
+
     return fileId;
   }
-  
+
   async updateSessionFiles(sessionCode, fileIds) {
     const sessionRef = doc(db, 'users', USER_ID, 'sessions', sessionCode);
     await updateDoc(sessionRef, {
       files: arrayUnion(...fileIds)
     });
   }
-  
+
   generateFileId() {
     return Date.now().toString() + Math.random().toString(36).substr(2, 9);
   }
-  
+
   showProgress() {
     this.uploadBtn.querySelector('.btn-text').style.display = 'none';
     this.uploadBtn.querySelector('.btn-loading').style.display = 'inline';
     this.uploadBtn.disabled = true;
     this.progressSection.style.display = 'block';
   }
-  
+
   updateProgress(percent, message) {
     this.progressFill.style.width = `${percent}%`;
     this.progressText.textContent = `${Math.round(percent)}% - ${message}`;
   }
-  
+
   hideProgress() {
     this.progressSection.style.display = 'none';
     this.uploadBtn.querySelector('.btn-text').style.display = 'inline';
     this.uploadBtn.querySelector('.btn-loading').style.display = 'none';
     this.uploadBtn.disabled = false;
   }
-  
+
   showSuccess(message) {
     this.statusSection.innerHTML = `<div class="status-success">${message}</div>`;
     this.form.reset();
     this.fileInfo.style.display = 'none';
     this.validateForm();
   }
-  
+
   showError(message) {
     this.statusSection.innerHTML = `<div class="status-error">Error: ${message}</div>`;
     this.hideProgress();
