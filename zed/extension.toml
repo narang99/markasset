@@ -1,0 +1,14 @@
+id = "markasset"
+name = "MarkAsset"
+description = "Upload and manage assets for markdown documents"
+version = "0.1.0"
+schema_version = 1
+authors = ["MarkAsset Team"]
+
+[slash_commands.asset-code]
+description = "Generate a 3-digit code for uploading assets from mobile"
+requires_argument = false
+
+[slash_commands.asset-check]
+description = "Check status of an asset session"
+requires_argument = true

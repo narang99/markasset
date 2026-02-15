@@ -1,0 +1,61 @@
+{
+  "name": "markasset",
+  "displayName": "MarkAsset",
+  "description": "Streamline adding images to markdown documents with upload codes",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "markasset.generateCode",
+        "title": "Generate Asset Upload Code",
+        "category": "MarkAsset"
+      },
+      {
+        "command": "markasset.checkSession",
+        "title": "Check Session Status",
+        "category": "MarkAsset"
+      },
+      {
+        "command": "markasset.downloadAssets",
+        "title": "Download Assets",
+        "category": "MarkAsset"
+      }
+    ],
+    "configuration": {
+      "title": "MarkAsset",
+      "properties": {
+        "markasset.firebaseProjectId": {
+          "type": "string",
+          "default": "markasset-project",
+          "description": "Firebase Project ID"
+        },
+        "markasset.firebaseApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Firebase API Key"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/vscode": "^1.74.0",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "firebase": "^10.7.1"
+  }
+}
