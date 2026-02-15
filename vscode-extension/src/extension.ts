@@ -1,29 +1,18 @@
 import * as vscode from 'vscode';
-import { generateAssetCode, checkSessionStatus, downloadAssets } from './commands';
+import { UploadSessionWebview } from './webview';
 
 export function activate(context: vscode.ExtensionContext) {
-  const generateCodeCommand = vscode.commands.registerCommand(
-    'markasset.generateCode',
-    generateAssetCode
+  const startSessionCommand = vscode.commands.registerCommand(
+    'markasset.startSession',
+    () => {
+      const webview = new UploadSessionWebview();
+      webview.show();
+    }
   );
   
-  const checkSessionCommand = vscode.commands.registerCommand(
-    'markasset.checkSession', 
-    checkSessionStatus
-  );
+  context.subscriptions.push(startSessionCommand);
   
-  const downloadAssetsCommand = vscode.commands.registerCommand(
-    'markasset.downloadAssets',
-    downloadAssets
-  );
-  
-  context.subscriptions.push(
-    generateCodeCommand,
-    checkSessionCommand, 
-    downloadAssetsCommand
-  );
-  
-  vscode.window.showInformationMessage('MarkAsset extension activated!');
+  // Extension activated silently
 }
 
 export function deactivate() {}

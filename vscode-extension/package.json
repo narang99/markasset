@@ -14,18 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "markasset.generateCode",
-        "title": "Generate Asset Upload Code",
-        "category": "MarkAsset"
-      },
-      {
-        "command": "markasset.checkSession",
-        "title": "Check Session Status",
-        "category": "MarkAsset"
-      },
-      {
-        "command": "markasset.downloadAssets",
-        "title": "Download Assets",
+        "command": "markasset.startSession",
+        "title": "Start Upload Session",
         "category": "MarkAsset"
       }
     ],
@@ -41,6 +31,11 @@
           "type": "string",
           "default": "",
           "description": "Firebase API Key"
+        },
+        "markasset.pollInterval": {
+          "type": "number",
+          "default": 2000,
+          "description": "Poll interval in milliseconds for checking uploaded files"
         }
       }
     }
