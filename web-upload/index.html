@@ -76,67 +76,6 @@
       });
     }
 
-    // PWA install prompt
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      showInstallPrompt();
-    });
-
-    // Check if already installed
-    window.addEventListener('DOMContentLoaded', () => {
-      if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-        console.log('PWA is installed');
-      } else {
-        console.log('PWA is not installed');
-        // Show manual install instructions after a delay if no auto prompt
-        setTimeout(() => {
-          if (!deferredPrompt) {
-            showManualInstallInstructions();
-          }
-        }, 3000);
-      }
-    });
-
-    function showInstallPrompt() {
-      const installDiv = document.createElement('div');
-      installDiv.innerHTML = `
-        <div id="install-prompt" style="position: fixed; top: 10px; left: 10px; right: 10px; background: #2196F3; color: white; padding: 12px; border-radius: 8px; z-index: 1000; font-size: 14px; text-align: center;">
-          <img src="./icons/favicon-16x16.png" alt="" style="vertical-align: middle; margin-right: 4px;"> Add MarkAsset to your home screen!
-          <button onclick="installPWA()" style="background: white; color: #2196F3; border: none; padding: 6px 12px; border-radius: 4px; margin-left: 10px; cursor: pointer;">Install</button>
-          <button onclick="document.getElementById('install-prompt').remove()" style="background: transparent; color: white; border: 1px solid white; padding: 6px 12px; border-radius: 4px; margin-left: 5px; cursor: pointer;">Later</button>
-        </div>
-      `;
-      document.body.appendChild(installDiv);
-    }
-
-    function showManualInstallInstructions() {
-      const instructDiv = document.createElement('div');
-      instructDiv.innerHTML = `
-        <div id="manual-install" style="position: fixed; bottom: 10px; left: 10px; right: 10px; background: #4CAF50; color: white; padding: 12px; border-radius: 8px; z-index: 1000; font-size: 13px; text-align: center;">
-          To install: Chrome menu → "Add to Home screen" or "Install app"
-          <button onclick="document.getElementById('manual-install').remove()" style="background: transparent; color: white; border: 1px solid white; padding: 4px 8px; border-radius: 4px; margin-left: 10px; cursor: pointer; font-size: 12px;">Got it</button>
-        </div>
-      `;
-      document.body.appendChild(instructDiv);
-    }
-
-    function installPWA() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then((choiceResult) => {
-          if (choiceResult.outcome === 'accepted') {
-            console.log('PWA installation accepted');
-          }
-          deferredPrompt = null;
-          document.getElementById('install-prompt')?.remove();
-        });
-      }
-    }
-
-    // Make installPWA global
-    window.installPWA = installPWA;
   </script>
 </body>
 </html>
