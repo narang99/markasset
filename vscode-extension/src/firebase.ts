@@ -43,13 +43,25 @@ export class FirebaseService {
       
       const sessionData = sessionSnap.data() as SessionData;
       
-      // Get actual file details from files collection
-      const filesQuery = query(
-        collection(this.db, 'users', USER_ID, 'files'),
-        where('session_code', '==', code)
-      );
-      const filesSnap = await getDocs(filesQuery);
-      const files = filesSnap.docs.map(doc => doc.data());
+      // Use session's files array (same approach as download functionality)
+      // This ensures consistency with the download process
+      console.log("session data", sessionData);
+      const fileIds = sessionData.files || [];
+      
+      // Get actual file details for each file ID
+      const files = [];
+      for (const fileId of fileIds) {
+        try {
+          const fileRef = doc(this.db, 'users', USER_ID, 'files', fileId);
+          const fileSnap = await getDoc(fileRef);
+          if (fileSnap.exists()) {
+            files.push(fileSnap.data());
+          }
+        } catch (error) {
+          console.error(`Failed to get file metadata for ${fileId}:`, error);
+          // Continue with other files
+        }
+      }
       
       return {
         exists: true,
