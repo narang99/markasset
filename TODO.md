@@ -1,0 +1,2 @@
+- New firebase app credentials to be used (Add support in makefile to get creds from env)
+- Use the app to see if we can improve the experience of where the images are downloaded, and if the user can be provided paths to copy/paste in their markdown
