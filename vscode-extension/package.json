@@ -13,6 +13,7 @@
   "categories": [
     "Other"
   ],
+  "icon": "icons/icon.png",
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
