@@ -43,7 +43,7 @@ export class UploadSessionWebview {
       async (message) => {
         switch (message.command) {
           case 'downloadFiles':
-            await this.downloadFiles();
+            await this.downloadFiles(message.folder);
             break;
           case 'cancel':
             this.dispose();
@@ -99,7 +99,7 @@ export class UploadSessionWebview {
     }
   }
 
-  private async downloadFiles() {
+  private async downloadFiles(folder: string = 'assets/') {
     if (!this.currentSessionCode) return;
 
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -109,12 +109,23 @@ export class UploadSessionWebview {
     }
 
     try {
-      this.updateWebview('downloading', 'Selecting download location...');
+      let assetsDir: string | undefined;
 
-      const assetsDir = await this.selectAssetsDirectory(workspaceFolder);
-      if (!assetsDir) {
-        this.updateWebview('files-ready', `Files ready for download`, undefined);
-        return;
+      if (folder === '__custom__') {
+        const selected = await vscode.window.showOpenDialog({
+          canSelectFiles: false,
+          canSelectFolders: true,
+          canSelectMany: false,
+          defaultUri: workspaceFolder.uri,
+          openLabel: 'Download Assets Here'
+        });
+        assetsDir = selected?.[0].fsPath;
+        if (!assetsDir) {
+          this.updateWebview('files-ready', `Files ready for download`, undefined);
+          return;
+        }
+      } else {
+        assetsDir = path.join(workspaceFolder.uri.fsPath, folder);
       }
 
       this.updateWebview('downloading', 'Downloading files...');
@@ -140,36 +151,6 @@ export class UploadSessionWebview {
     } catch (error) {
       this.updateWebview('error', `Download failed: ${error}`);
     }
-  }
-
-  private async selectAssetsDirectory(workspaceFolder: vscode.WorkspaceFolder): Promise<string | undefined> {
-    const options: vscode.QuickPickItem[] = [
-      { label: 'assets/', description: 'Create/use assets folder in workspace root' },
-      { label: 'images/', description: 'Create/use images folder in workspace root' },
-      { label: 'Choose custom folder...', description: 'Select a different folder' }
-    ];
-
-    const selection = await vscode.window.showQuickPick(options, {
-      placeHolder: 'Where should assets be downloaded?'
-    });
-
-    if (!selection) {
-      return undefined;
-    }
-
-    if (selection.label === 'Choose custom folder...') {
-      const customFolder = await vscode.window.showOpenDialog({
-        canSelectFiles: false,
-        canSelectFolders: true,
-        canSelectMany: false,
-        defaultUri: workspaceFolder.uri,
-        openLabel: 'Select Assets Folder'
-      });
-
-      return customFolder?.[0].fsPath;
-    }
-
-    return path.join(workspaceFolder.uri.fsPath, selection.label);
   }
 
   private stopPolling() {
@@ -303,6 +284,14 @@ export class UploadSessionWebview {
                 ${filesList}
               </div>
             ` : ''}
+            <div style="margin: 15px 0; text-align: left;">
+              <label for="folder-select" style="display: block; margin-bottom: 5px;">Download to:</label>
+              <select id="folder-select" style="width: 100%; padding: 8px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: 4px; font-size: 14px;">
+                <option value="assets/" selected>assets/</option>
+                <option value="images/">images/</option>
+                <option value="__custom__">Choose custom folder...</option>
+              </select>
+            </div>
             <button class="button" onclick="downloadFiles()">Download All</button>
           ` : ''}
           
@@ -328,7 +317,9 @@ export class UploadSessionWebview {
           const vscode = acquireVsCodeApi();
           
           function downloadFiles() {
-            vscode.postMessage({ command: 'downloadFiles' });
+            const select = document.getElementById('folder-select');
+            const folder = select ? select.value : 'assets/';
+            vscode.postMessage({ command: 'downloadFiles', folder });
           }
           
           function cancel() {

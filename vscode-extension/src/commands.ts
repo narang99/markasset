@@ -138,31 +138,15 @@ export async function downloadAssets(code?: string): Promise<void> {
 }
 
 async function selectAssetsDirectory(workspaceFolder: vscode.WorkspaceFolder): Promise<string | undefined> {
-  const options: vscode.QuickPickItem[] = [
-    { label: 'assets/', description: 'Create/use assets folder in workspace root' },
-    { label: 'images/', description: 'Create/use images folder in workspace root' },
-    { label: 'Choose custom folder...', description: 'Select a different folder' }
-  ];
-  
-  const selection = await vscode.window.showQuickPick(options, {
-    placeHolder: 'Where should assets be downloaded?'
+  const defaultDir = vscode.Uri.joinPath(workspaceFolder.uri, 'assets');
+
+  const selected = await vscode.window.showOpenDialog({
+    canSelectFiles: false,
+    canSelectFolders: true,
+    canSelectMany: false,
+    defaultUri: defaultDir,
+    openLabel: 'Download Assets Here'
   });
-  
-  if (!selection) {
-    return undefined;
-  }
-  
-  if (selection.label === 'Choose custom folder...') {
-    const customFolder = await vscode.window.showOpenDialog({
-      canSelectFiles: false,
-      canSelectFolders: true,
-      canSelectMany: false,
-      defaultUri: workspaceFolder.uri,
-      openLabel: 'Select Assets Folder'
-    });
-    
-    return customFolder?.[0].fsPath;
-  }
-  
-  return path.join(workspaceFolder.uri.fsPath, selection.label);
+
+  return selected?.[0].fsPath;
 }

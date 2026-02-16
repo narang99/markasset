@@ -14,7 +14,7 @@ help:
 serve:
 	@echo "Starting development server at http://localhost:3000"
 	@echo "Press Ctrl+C to stop"
-	npx serve . --port 3000
+	npx serve .
 
 # Alias for serve
 dev: serve
