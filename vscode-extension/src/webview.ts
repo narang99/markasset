@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { FirebaseService } from './firebase';
 import { StorageService } from './storage';
 import * as path from 'path';
-import { FolderOption, renderFolderPicker, renderFilesList, renderStateContent, renderStyles, renderScript, renderPage } from './webview-renderers';
+import { FolderOption, WorkspaceOption, renderFolderPicker, renderWorkspacePicker, renderFilesList, renderStateContent, renderStyles, renderScript, renderPage } from './webview-renderers';
 
 export class UploadSessionWebview {
   private panel: vscode.WebviewPanel | undefined;
@@ -11,6 +11,8 @@ export class UploadSessionWebview {
   private pollingInterval: NodeJS.Timeout | undefined;
   private currentSessionCode: string | undefined;
   private lastActiveFileDirname: string | undefined;
+  private selectedWorkspaceIndex: number = 0;
+  private lastState: { state: string; message: string; files?: any[] } | undefined;
   private disposables: vscode.Disposable[] = [];
 
   constructor() {
@@ -52,6 +54,12 @@ export class UploadSessionWebview {
         switch (message.command) {
           case 'downloadFiles':
             await this.downloadFiles(message.folder);
+            break;
+          case 'selectWorkspace':
+            this.selectedWorkspaceIndex = message.index;
+            if (this.lastState) {
+              this.updateWebview(this.lastState.state, this.lastState.message, this.lastState.files);
+            }
             break;
           case 'cancel':
             this.dispose();
@@ -110,7 +118,7 @@ export class UploadSessionWebview {
   private async downloadFiles(folder: string) {
     if (!this.currentSessionCode) return;
 
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    const workspaceFolder = this.getSelectedWorkspaceFolder();
     if (!workspaceFolder) {
       vscode.window.showErrorMessage('No workspace folder open');
       return;
@@ -171,13 +179,20 @@ export class UploadSessionWebview {
   private updateWebview(state: string, message: string, files?: any[]) {
     if (!this.panel) return;
 
+    this.lastState = { state, message, files };
     this.panel.webview.html = this.getWebviewContent(state, message, files);
   }
 
   // --- Data ---
 
+  private getSelectedWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders || folders.length === 0) return undefined;
+    return folders[this.selectedWorkspaceIndex] || folders[0];
+  }
+
   private resolvePathVariables(rawPath: string): { resolved: string | undefined; disabled: boolean; disabledReason: string } {
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+    const workspaceRoot = this.getSelectedWorkspaceFolder()?.uri.fsPath || '';
 
     // Check for relative paths (doesn't start with a variable or /)
     const startsWithVariable = rawPath.includes('${workspaceFolder}') || rawPath.includes('${fileDirname}');
@@ -257,21 +272,33 @@ export class UploadSessionWebview {
     return [...enabled, ...disabled];
   }
 
+  private getWorkspaceOptions(): WorkspaceOption[] {
+    const folders = vscode.workspace.workspaceFolders || [];
+    return folders.map((folder, i) => ({
+      name: folder.name,
+      index: i,
+      selected: i === this.selectedWorkspaceIndex,
+    }));
+  }
+
   // --- Orchestrator ---
 
   private getWebviewContent(state: string, message: string, files?: any[]): string {
     const folderOptions = this.getFolderOptions();
     const defaultFolderValue = folderOptions.find(o => o.selected)?.value || '';
     const sessionCode = this.currentSessionCode || '';
+    const workspaceOptions = this.getWorkspaceOptions();
 
     const stateHtml = renderStateContent(state, message, sessionCode);
     const filesListHtml = files ? renderFilesList(files) : '';
     const folderPickerHtml = renderFolderPicker(folderOptions);
+    const workspacePickerHtml = renderWorkspacePicker(workspaceOptions);
 
     const isFilesReady = state === 'files-ready';
     const bodyHtml = isFilesReady
       ? `${stateHtml}
          ${filesListHtml ? `<div class="files-section"><h3>Ready to download:</h3>${filesListHtml}</div>` : ''}
+         ${workspacePickerHtml}
          ${folderPickerHtml}
          <button class="button" onclick="downloadFiles()">Download All</button>`
       : stateHtml;

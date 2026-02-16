@@ -1,3 +1,25 @@
+export interface WorkspaceOption {
+  name: string;
+  index: number;
+  selected: boolean;
+}
+
+export function renderWorkspacePicker(workspaces: WorkspaceOption[]): string {
+  if (workspaces.length <= 1) return '';
+
+  const optionsHtml = workspaces
+    .map(ws => `<option value="${ws.index}" ${ws.selected ? 'selected' : ''}>${ws.name}</option>`)
+    .join('');
+
+  return `
+    <div class="workspace-picker">
+      <label class="section-label">Workspace:</label>
+      <select class="workspace-select" onchange="selectWorkspace(this.value)">
+        ${optionsHtml}
+      </select>
+    </div>`;
+}
+
 export interface FolderOption {
   alias: string;
   message: string;
@@ -151,6 +173,28 @@ export function renderStyles(): string {
     .success {
       color: var(--vscode-terminal-ansiGreen);
     }
+    .workspace-picker {
+      margin: 15px 0;
+      text-align: left;
+    }
+    .workspace-picker label.section-label {
+      display: block;
+      margin-bottom: 8px;
+    }
+    .workspace-select {
+      width: 100%;
+      padding: 8px 10px;
+      background: var(--vscode-dropdown-background);
+      color: var(--vscode-dropdown-foreground);
+      border: 1px solid var(--vscode-dropdown-border);
+      border-radius: 4px;
+      font-family: var(--vscode-font-family);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .workspace-select:focus {
+      outline: 1px solid var(--vscode-focusBorder);
+    }
     .folder-options {
       margin: 15px 0;
       text-align: left;
@@ -222,6 +266,10 @@ export function renderScript(defaultFolderValue: string): string {
       const checked = document.querySelector('input[name="folder"]:checked');
       const folder = checked ? checked.value : '${defaultFolderValue}';
       vscode.postMessage({ command: 'downloadFiles', folder });
+    }
+
+    function selectWorkspace(index) {
+      vscode.postMessage({ command: 'selectWorkspace', index: parseInt(index) });
     }
 
     function cancel() {
