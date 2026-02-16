@@ -6,6 +6,22 @@ import { OAuth2Client, CodeChallengeMethod } from 'google-auth-library';
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 const SECRET_KEY = 'markasset.google.refreshToken';
 
+export function getCredentials(): [string, string] {
+  const config = vscode.workspace.getConfiguration('markasset');
+  const clientId = config.get<string>('googleClientId', '');
+  const clientSecret = config.get<string>('googleClientSecret', '');
+  if (!clientId || !clientSecret) {
+    throw new Error('Google Client ID and Secret not configured. Set markasset.googleClientId and markasset.googleClientSecret in settings.');
+  }
+
+  return [clientId, clientSecret];
+}
+
+export function createClient(): OAuth2Client {
+  const [clientId, clientSecret] = getCredentials();
+  return new OAuth2Client(clientId, clientSecret);
+}
+
 export class GoogleAuthService {
   constructor(private context: vscode.ExtensionContext) {}
 
@@ -14,28 +30,30 @@ export class GoogleAuthService {
     return !!refreshToken;
   }
 
-  async getAccessToken(): Promise<string> {
+  async getRefreshToken(): Promise<string> {
     const refreshToken = await this.context.secrets.get(SECRET_KEY);
     if (!refreshToken) {
       throw new Error('Not authenticated');
     }
+    return refreshToken;
+  }
 
-    const client = this.createClient();
+  async getAccessToken(): Promise<string> {
+    const refreshToken = await this.getRefreshToken();
+    const client = createClient();
     client.setCredentials({ refresh_token: refreshToken });
-
     const { token } = await client.getAccessToken();
     if (!token) {
       await this.context.secrets.delete(SECRET_KEY);
       throw new Error('Session expired, please sign in again');
     }
-
     return token;
   }
 
   async authenticate(): Promise<void> {
     // We don't know the port yet, so create client without redirect URI.
     // It gets set once the server starts and the OS assigns a port.
-    const client = this.createClient();
+    const client = createClient();
     const codes = await client.generateCodeVerifierAsync();
     const codeVerifier = codes.codeVerifier!;
     const codeChallenge = codes.codeChallenge!;
@@ -51,16 +69,6 @@ export class GoogleAuthService {
 
   async signOut(): Promise<void> {
     await this.context.secrets.delete(SECRET_KEY);
-  }
-
-  private createClient(): OAuth2Client {
-    const config = vscode.workspace.getConfiguration('markasset');
-    const clientId = config.get<string>('googleClientId', '');
-    const clientSecret = config.get<string>('googleClientSecret', '');
-    if (!clientId || !clientSecret) {
-      throw new Error('Google Client ID and Secret not configured. Set markasset.googleClientId and markasset.googleClientSecret in settings.');
-    }
-    return new OAuth2Client(clientId, clientSecret);
   }
 
   private waitForCallback(client: OAuth2Client, codeChallenge: string): Promise<string> {

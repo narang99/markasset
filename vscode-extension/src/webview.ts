@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { CloudProvider } from './cloud-provider';
-import { FirebaseProvider } from './firebase-provider';
+import { GoogleDriveProvider } from './google-drive-provider';
 import { GoogleAuthService } from './auth';
 import * as path from 'path';
 import { FolderOption, WorkspaceOption, renderFolderPicker, renderWorkspacePicker, renderFilesList, renderStateContent, renderStyles, renderScript, renderPage } from './webview-renderers';
@@ -17,8 +17,8 @@ export class UploadSessionWebview {
   private disposables: vscode.Disposable[] = [];
 
   constructor(private context: vscode.ExtensionContext) {
-    this.provider = new FirebaseProvider();
     this.authService = new GoogleAuthService(context);
+    this.provider = new GoogleDriveProvider(this.authService);
   }
 
   public async show() {
