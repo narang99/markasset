@@ -9,6 +9,7 @@ export class UploadSessionWebview {
   private storageService: StorageService;
   private pollingInterval: NodeJS.Timeout | undefined;
   private currentSessionCode: string | undefined;
+  private lastActiveFileDirname: string | undefined;
   private disposables: vscode.Disposable[] = [];
 
   constructor() {
@@ -17,6 +18,12 @@ export class UploadSessionWebview {
   }
 
   public async show() {
+    // Capture active file's directory before opening webview (which clears activeTextEditor)
+    const activeEditor = vscode.window.activeTextEditor;
+    if (activeEditor) {
+      this.lastActiveFileDirname = path.dirname(activeEditor.document.uri.fsPath);
+    }
+
     // Create or show the webview panel
     if (this.panel) {
       this.panel.reveal();
@@ -99,7 +106,7 @@ export class UploadSessionWebview {
     }
   }
 
-  private async downloadFiles(folder: string = 'assets/') {
+  private async downloadFiles(folder: string) {
     if (!this.currentSessionCode) return;
 
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -125,7 +132,7 @@ export class UploadSessionWebview {
           return;
         }
       } else {
-        assetsDir = path.join(workspaceFolder.uri.fsPath, folder);
+        assetsDir = folder;
       }
 
       this.updateWebview('downloading', 'Downloading files...');
@@ -168,6 +175,11 @@ export class UploadSessionWebview {
 
   private getWebviewContent(state: string, message: string, files?: any[]): string {
     const filesList = files ? files.map(file => `<div class="file-item">${file.original_name || 'Unknown file'}</div>`).join('') : '';
+
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+    const workspaceOption = path.join(workspaceRoot, 'images');
+    const fileDirOption = this.lastActiveFileDirname ? path.join(this.lastActiveFileDirname, 'images') : undefined;
+    const fileDirIsSameAsWorkspace = fileDirOption === workspaceOption;
     
     return `
       <!DOCTYPE html>
@@ -256,6 +268,54 @@ export class UploadSessionWebview {
           .success {
             color: var(--vscode-terminal-ansiGreen);
           }
+          .folder-options {
+            margin: 15px 0;
+            text-align: left;
+          }
+          .folder-options label.section-label {
+            display: block;
+            margin-bottom: 8px;
+          }
+          .folder-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 12px;
+            margin: 6px 0;
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            cursor: pointer;
+          }
+          .folder-option:hover:not(.disabled) {
+            border-color: var(--vscode-focusBorder);
+          }
+          .folder-option.selected {
+            border-color: var(--vscode-focusBorder);
+            background: var(--vscode-list-activeSelectionBackground);
+          }
+          .folder-option.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+          .folder-option input[type="radio"] {
+            margin-top: 2px;
+            accent-color: var(--vscode-focusBorder);
+          }
+          .folder-option .option-text {
+            flex: 1;
+            min-width: 0;
+          }
+          .folder-option .option-alias {
+            font-size: 13px;
+          }
+          .folder-option .option-path {
+            font-size: 11px;
+            opacity: 0.7;
+            font-family: var(--vscode-editor-font-family);
+            word-break: break-all;
+            margin-top: 2px;
+          }
         </style>
       </head>
       <body>
@@ -284,13 +344,29 @@ export class UploadSessionWebview {
                 ${filesList}
               </div>
             ` : ''}
-            <div style="margin: 15px 0; text-align: left;">
-              <label for="folder-select" style="display: block; margin-bottom: 5px;">Download to:</label>
-              <select id="folder-select" style="width: 100%; padding: 8px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: 4px; font-size: 14px;">
-                <option value="assets/" selected>assets/</option>
-                <option value="images/">images/</option>
-                <option value="__custom__">Choose custom folder...</option>
-              </select>
+            <div class="folder-options">
+              <label class="section-label">Download to:</label>
+              <label class="folder-option selected" onclick="selectOption(this)">
+                <input type="radio" name="folder" value="${workspaceOption}" checked>
+                <div class="option-text">
+                  <div class="option-alias">\${workspaceFolder}/images</div>
+                  <div class="option-path">${workspaceOption}</div>
+                </div>
+              </label>
+              <label class="folder-option ${fileDirOption && !fileDirIsSameAsWorkspace ? '' : 'disabled'}" ${fileDirOption && !fileDirIsSameAsWorkspace ? 'onclick="selectOption(this)"' : ''}>
+                <input type="radio" name="folder" value="${fileDirOption || ''}" ${!fileDirOption || fileDirIsSameAsWorkspace ? 'disabled' : ''}>
+                <div class="option-text">
+                  <div class="option-alias">\${fileDirname}/images</div>
+                  <div class="option-path">${!fileDirOption ? 'No active file detected' : fileDirIsSameAsWorkspace ? 'Same as workspace root' : fileDirOption}</div>
+                </div>
+              </label>
+              <label class="folder-option" onclick="selectOption(this)">
+                <input type="radio" name="folder" value="__custom__">
+                <div class="option-text">
+                  <div class="option-alias">Choose custom folder...</div>
+                  <div class="option-path">Browse for a folder</div>
+                </div>
+              </label>
             </div>
             <button class="button" onclick="downloadFiles()">Download All</button>
           ` : ''}
@@ -316,9 +392,16 @@ export class UploadSessionWebview {
         <script>
           const vscode = acquireVsCodeApi();
           
+          function selectOption(label) {
+            if (label.classList.contains('disabled')) return;
+            document.querySelectorAll('.folder-option').forEach(el => el.classList.remove('selected'));
+            label.classList.add('selected');
+            label.querySelector('input[type="radio"]').checked = true;
+          }
+
           function downloadFiles() {
-            const select = document.getElementById('folder-select');
-            const folder = select ? select.value : 'assets/';
+            const checked = document.querySelector('input[name="folder"]:checked');
+            const folder = checked ? checked.value : '${workspaceOption}';
             vscode.postMessage({ command: 'downloadFiles', folder });
           }
           
