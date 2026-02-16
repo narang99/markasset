@@ -176,24 +176,82 @@ export class UploadSessionWebview {
 
   // --- Data ---
 
-  private getFolderOptions(): FolderOption[] {
+  private resolvePathVariables(rawPath: string): { resolved: string | undefined; disabled: boolean; disabledReason: string } {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
-    const workspacePath = path.join(workspaceRoot, 'images');
-    const fileDirPath = this.lastActiveFileDirname ? path.join(this.lastActiveFileDirname, 'images') : undefined;
-    const fileDirIsSameAsWorkspace = fileDirPath === workspacePath;
 
-    const fileDirDisabled = !fileDirPath || fileDirIsSameAsWorkspace;
-    const fileDirMessage = !fileDirPath
-      ? 'No active file detected'
-      : fileDirIsSameAsWorkspace
-        ? 'Same as workspace root'
-        : fileDirPath;
+    // Check for relative paths (doesn't start with a variable or /)
+    const startsWithVariable = rawPath.includes('${workspaceFolder}') || rawPath.includes('${fileDirname}');
+    if (!startsWithVariable && !path.isAbsolute(rawPath)) {
+      return { resolved: undefined, disabled: true, disabledReason: 'Relative paths are not allowed — use ${workspaceFolder} or ${fileDirname}' };
+    }
 
-    return [
-      { alias: '${workspaceFolder}/images', message: workspacePath, value: workspacePath, disabled: false, selected: true },
-      { alias: '${fileDirname}/images', message: fileDirMessage, value: fileDirPath || '', disabled: fileDirDisabled, selected: false },
-      { alias: 'Choose custom folder...', message: 'Browse for a folder', value: '__custom__', disabled: false, selected: false },
-    ];
+    let resolved = rawPath;
+    resolved = resolved.replace(/\$\{workspaceFolder\}/g, workspaceRoot);
+
+    if (resolved.includes('${fileDirname}')) {
+      if (!this.lastActiveFileDirname) {
+        return { resolved: undefined, disabled: true, disabledReason: 'No active file detected' };
+      }
+      resolved = resolved.replace(/\$\{fileDirname\}/g, this.lastActiveFileDirname);
+    }
+
+    return { resolved, disabled: false, disabledReason: '' };
+  }
+
+  private buildOption(rawPath: string, isSelected: boolean): FolderOption {
+    const { resolved, disabled, disabledReason } = this.resolvePathVariables(rawPath);
+    return {
+      alias: rawPath,
+      message: disabled ? disabledReason : resolved!,
+      value: resolved || '',
+      disabled,
+      selected: isSelected,
+    };
+  }
+
+  private getDefaultPaths(): string[] {
+    return ['${workspaceFolder}/images', '${fileDirname}/images'];
+  }
+
+  private getFolderOptions(): FolderOption[] {
+    const customPaths = vscode.workspace.getConfiguration('markasset').get<string[]>('downloadPaths', []);
+    const useCustom = customPaths.length > 0;
+    const rawPaths = useCustom ? customPaths : this.getDefaultPaths();
+
+    // Validate: reject reserved __custom__ value
+    const options: FolderOption[] = rawPaths.map((rawPath, i) => {
+      if (rawPath === '__custom__') {
+        return {
+          alias: rawPath,
+          message: 'Reserved value — you should remove this from your settings',
+          value: '',
+          disabled: true,
+          selected: false,
+        };
+      }
+      return this.buildOption(rawPath, i === 0);
+    });
+
+    // Deduplicate by resolved value (keep first)
+    const seen = new Set<string>();
+    const deduped = options.filter(opt => {
+      if (opt.disabled || !opt.value) return true;
+      if (seen.has(opt.value)) return false;
+      seen.add(opt.value);
+      return true;
+    });
+
+    // Ensure first enabled option is selected
+    const hasSelection = deduped.some(o => o.selected && !o.disabled);
+    if (!hasSelection) {
+      const firstEnabled = deduped.find(o => !o.disabled);
+      if (firstEnabled) firstEnabled.selected = true;
+    }
+
+    // Custom folder browser is always last
+    deduped.push({ alias: 'Choose custom folder...', message: 'Browse for a folder', value: '__custom__', disabled: false, selected: false });
+
+    return deduped;
   }
 
   // --- Orchestrator ---

@@ -181,6 +181,7 @@ The webview rendering follows a strict separation between data, rendering, and o
 - **Data computation** (e.g. `getFolderOptions()`) lives in the class (`webview.ts`) since it needs access to instance state like `lastActiveFileDirname`.
 - **One orchestrator** (`getWebviewContent`) is the single place that wires everything together: computes data, calls renderers with that data, and assembles the final page. Renderers never call other renderers — the orchestrator composes their outputs.
 - **Renderers are dumb**: they don't decide what to show or when. They receive pre-computed HTML strings and data as parameters. Conditional logic about what sections to include belongs in the orchestrator, not in the renderers.
+- **Never hide errors silently**: When user-provided options or settings are invalid (e.g. relative paths, reserved values), show the option as disabled with a visible error message explaining why. Never silently skip or filter out invalid entries — the user must see what went wrong.
 
 ---
 **Last Updated**: 2026-02-15 - ✅ **PROJECT COMPLETE** - VSCode extension + PWA web interface fully functional with end-to-end testing verified

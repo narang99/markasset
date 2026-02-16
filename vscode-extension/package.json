@@ -41,6 +41,14 @@
           "type": "number",
           "default": 2000,
           "description": "Poll interval in milliseconds for checking uploaded files"
+        },
+        "markasset.downloadPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Custom download folder paths. Supports `${workspaceFolder}` and `${fileDirname}` variables. When set, replaces the default paths (`${workspaceFolder}/images` and `${fileDirname}/images`). Paths must be absolute (use variables, not relative paths like `./images`)."
         }
       }
     }
