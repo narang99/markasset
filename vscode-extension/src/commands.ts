@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { FirebaseService } from './firebase';
-import { StorageService } from './storage';
+import { CloudProvider } from './cloud-provider';
+import { FirebaseProvider } from './firebase-provider';
 
-const firebaseService = new FirebaseService();
-const storageService = new StorageService();
+const provider: CloudProvider = new FirebaseProvider();
 
 export async function generateAssetCode(): Promise<void> {
   try {
@@ -13,7 +12,7 @@ export async function generateAssetCode(): Promise<void> {
       title: "Generating upload code...",
       cancellable: false
     }, async () => {
-      const code = await firebaseService.generateCode();
+      const code = await provider.generateCode();
       
       const message = `Upload code: ${code}`;
       const action = await vscode.window.showInformationMessage(
@@ -57,7 +56,7 @@ export async function checkSessionStatus(): Promise<void> {
       title: "Checking session...",
       cancellable: false
     }, async () => {
-      const result = await firebaseService.checkSession(code);
+      const result = await provider.checkSession(code);
       
       if (!result.exists) {
         vscode.window.showWarningMessage(`Session ${code} not found or expired`);
@@ -122,7 +121,7 @@ export async function downloadAssets(code?: string): Promise<void> {
       title: `Downloading files from session ${code}...`,
       cancellable: false
     }, async () => {
-      const downloadedFiles = await storageService.downloadSessionFiles(code!, assetsDir);
+      const downloadedFiles = await provider.downloadSessionFiles(code!, assetsDir);
       
       if (downloadedFiles.length > 0) {
         vscode.window.showInformationMessage(

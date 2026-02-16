@@ -1,13 +1,12 @@
 import * as vscode from 'vscode';
-import { FirebaseService } from './firebase';
-import { StorageService } from './storage';
+import { CloudProvider } from './cloud-provider';
+import { FirebaseProvider } from './firebase-provider';
 import * as path from 'path';
 import { FolderOption, WorkspaceOption, renderFolderPicker, renderWorkspacePicker, renderFilesList, renderStateContent, renderStyles, renderScript, renderPage } from './webview-renderers';
 
 export class UploadSessionWebview {
   private panel: vscode.WebviewPanel | undefined;
-  private firebaseService: FirebaseService;
-  private storageService: StorageService;
+  private provider: CloudProvider;
   private pollingInterval: NodeJS.Timeout | undefined;
   private currentSessionCode: string | undefined;
   private lastActiveFileDirname: string | undefined;
@@ -16,8 +15,7 @@ export class UploadSessionWebview {
   private disposables: vscode.Disposable[] = [];
 
   constructor() {
-    this.firebaseService = new FirebaseService();
-    this.storageService = new StorageService();
+    this.provider = new FirebaseProvider();
   }
 
   public async show() {
@@ -86,7 +84,7 @@ export class UploadSessionWebview {
       this.updateWebview('loading', 'Generating session code...');
 
       // Generate session code
-      this.currentSessionCode = await this.firebaseService.generateCode();
+      this.currentSessionCode = await this.provider.generateCode();
 
       // Show session code and start polling
       this.updateWebview('waiting', `Session code: ${this.currentSessionCode}`);
@@ -109,7 +107,7 @@ export class UploadSessionWebview {
     if (!this.currentSessionCode) return;
 
     try {
-      const result = await this.firebaseService.checkSession(this.currentSessionCode);
+      const result = await this.provider.checkSession(this.currentSessionCode);
 
       if (result.exists && result.files && result.files.length > 0) {
         // Stop polling and show files
@@ -152,7 +150,7 @@ export class UploadSessionWebview {
 
       this.updateWebview('downloading', 'Downloading files...');
 
-      const downloadedFiles = await this.storageService.downloadSessionFiles(this.currentSessionCode, assetsDir);
+      const downloadedFiles = await this.provider.downloadSessionFiles(this.currentSessionCode, assetsDir);
 
       if (downloadedFiles.length > 0) {
         const relativePath = path.relative(workspaceFolder.uri.fsPath, assetsDir);
@@ -162,7 +160,7 @@ export class UploadSessionWebview {
         this.updateWebview('completed', `Downloaded ${downloadedFiles.length} files successfully`);
 
         // Cleanup session after successful download
-        await this.firebaseService.deleteSession(this.currentSessionCode);
+        await this.provider.deleteSession(this.currentSessionCode);
 
         // Auto-close after success
         setTimeout(() => this.dispose(), 2000);
