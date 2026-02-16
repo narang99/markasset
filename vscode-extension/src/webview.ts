@@ -308,6 +308,12 @@ export class UploadSessionWebview {
           }
           .folder-option .option-alias {
             font-size: 13px;
+            font-family: var(--vscode-editor-font-family);
+            color: var(--vscode-textPreformat-foreground);
+            background: var(--vscode-textCodeBlock-background);
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
           }
           .folder-option .option-path {
             font-size: 11px;
