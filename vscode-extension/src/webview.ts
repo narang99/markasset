@@ -241,17 +241,20 @@ export class UploadSessionWebview {
       return true;
     });
 
+    // Sort: enabled first, disabled last
+    const enabled = deduped.filter(o => !o.disabled);
+    const disabled = deduped.filter(o => o.disabled);
+
     // Ensure first enabled option is selected
-    const hasSelection = deduped.some(o => o.selected && !o.disabled);
-    if (!hasSelection) {
-      const firstEnabled = deduped.find(o => !o.disabled);
-      if (firstEnabled) firstEnabled.selected = true;
+    const hasSelection = enabled.some(o => o.selected);
+    if (!hasSelection && enabled.length > 0) {
+      enabled[0].selected = true;
     }
 
-    // Custom folder browser is always last
-    deduped.push({ alias: 'Choose custom folder...', message: 'Browse for a folder', value: '__custom__', disabled: false, selected: false });
+    // Custom folder browser is always last enabled, before disabled
+    enabled.push({ alias: 'Choose custom folder...', message: 'Browse for a folder', value: '__custom__', disabled: false, selected: false });
 
-    return deduped;
+    return [...enabled, ...disabled];
   }
 
   // --- Orchestrator ---
