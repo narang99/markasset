@@ -59,6 +59,12 @@ export function renderFilesList(files: any[]): string {
 
 export function renderStateContent(state: string, message: string, sessionCode: string): string {
   switch (state) {
+    case 'auth':
+      return `
+        <div class="status">${message}</div>
+        <p>Sign in with your Google account to use Google Drive for file transfer.</p>
+        <button class="button" onclick="signIn()">Sign in with Google</button>`;
+
     case 'loading':
       return `<div class="status">${message}</div>`;
 
@@ -270,6 +276,10 @@ export function renderScript(defaultFolderValue: string): string {
 
     function selectWorkspace(index) {
       vscode.postMessage({ command: 'selectWorkspace', index: parseInt(index) });
+    }
+
+    function signIn() {
+      vscode.postMessage({ command: 'signIn' });
     }
 
     function cancel() {

@@ -27,6 +27,16 @@
     "configuration": {
       "title": "MarkAsset",
       "properties": {
+        "markasset.googleClientId": {
+          "type": "string",
+          "default": "",
+          "description": "Google OAuth 2.0 Client ID (Desktop app type)"
+        },
+        "markasset.googleClientSecret": {
+          "type": "string",
+          "default": "",
+          "description": "Google OAuth 2.0 Client Secret (Desktop app type — not truly secret, required by Google's API)"
+        },
         "markasset.firebaseProjectId": {
           "type": "string",
           "default": "markasset-project",
@@ -64,6 +74,7 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
-    "firebase": "^10.7.1"
+    "firebase": "^10.7.1",
+    "google-auth-library": "^10.5.0"
   }
 }

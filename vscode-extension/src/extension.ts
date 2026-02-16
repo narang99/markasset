@@ -5,7 +5,7 @@ export function activate(context: vscode.ExtensionContext) {
   const startSessionCommand = vscode.commands.registerCommand(
     'markasset.startSession',
     () => {
-      const webview = new UploadSessionWebview();
+      const webview = new UploadSessionWebview(context);
       webview.show();
     }
   );
