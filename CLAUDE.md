@@ -174,5 +174,13 @@ npx serve .
 - **Zed**: Rust WASM + HTTP API (paused due to API docs)
 - **Firebase**: Firestore + Storage (serverless, scalable)
 
+## Webview Code Style (VSCode Extension)
+The webview rendering follows a strict separation between data, rendering, and orchestration:
+
+- **Pure renderers** live in `webview-renderers.ts` as exported standalone functions. They take data in, return HTML strings out. No `this`, no `vscode` imports, no side effects. Think of them like stateless React components.
+- **Data computation** (e.g. `getFolderOptions()`) lives in the class (`webview.ts`) since it needs access to instance state like `lastActiveFileDirname`.
+- **One orchestrator** (`getWebviewContent`) is the single place that wires everything together: computes data, calls renderers with that data, and assembles the final page. Renderers never call other renderers — the orchestrator composes their outputs.
+- **Renderers are dumb**: they don't decide what to show or when. They receive pre-computed HTML strings and data as parameters. Conditional logic about what sections to include belongs in the orchestrator, not in the renderers.
+
 ---
 **Last Updated**: 2026-02-15 - ✅ **PROJECT COMPLETE** - VSCode extension + PWA web interface fully functional with end-to-end testing verified
