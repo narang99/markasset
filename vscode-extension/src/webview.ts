@@ -25,6 +25,12 @@ export class UploadSessionWebview {
     const activeEditor = vscode.window.activeTextEditor;
     if (activeEditor) {
       this.lastActiveFileDirname = path.dirname(activeEditor.document.uri.fsPath);
+
+      // Default workspace picker to the workspace containing the active file
+      const activeWorkspace = vscode.workspace.getWorkspaceFolder(activeEditor.document.uri);
+      if (activeWorkspace) {
+        this.selectedWorkspaceIndex = activeWorkspace.index;
+      }
     }
 
     // Create or show the webview panel
