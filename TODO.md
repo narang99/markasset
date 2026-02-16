@@ -1,2 +1,7 @@
 - New firebase app credentials to be used (Add support in makefile to get creds from env)
 - Use the app to see if we can improve the experience of where the images are downloaded, and if the user can be provided paths to copy/paste in their markdown
+- Handle multiple workspaces
+- Remove the quick pick, instead keep a dropdown where the options are selected
+  - User can set preferred options in workspace settings
+  - User can set custom options in workspace settings
+  - These should allow vscode variable substitution
