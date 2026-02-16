@@ -67,3 +67,5 @@ sw.js.map
 .pnpm-store/
 .yarn/
 .npm/
+
+/test/
