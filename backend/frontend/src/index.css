@@ -96,7 +96,7 @@ header p {
   background: var(--blue-dim);
 }
 
-#authStatus {
+.auth-status {
   color: var(--fg2);
   font-size: 0.875rem;
 }
@@ -181,6 +181,10 @@ input[type="file"]::file-selector-button:hover {
   border: 1px solid var(--bg3);
 }
 
+.file-info.visible {
+  display: block;
+}
+
 button {
   width: 100%;
   padding: 18px;
@@ -202,10 +206,6 @@ button:disabled {
   background: var(--bg4);
   color: var(--fg3);
   cursor: not-allowed;
-}
-
-.btn-loading {
-  display: none;
 }
 
 .progress {

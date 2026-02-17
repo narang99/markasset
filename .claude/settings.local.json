@@ -6,7 +6,9 @@
       "Bash(npx tsc:*)",
       "Bash(npm install)",
       "Bash(npm run compile:*)",
-      "Bash(npx serve:*)"
+      "Bash(npx serve:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []
