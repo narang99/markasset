@@ -109,21 +109,29 @@ function App() {
         onLogin={login}
         onLogout={logout}
       />
-      <main>
-        <UploadForm 
-          isAuthenticated={isAuthenticated}
-          onSubmit={uploadFiles}
-        />
-        <ProgressBar 
-          progress={progress}
-          message={progressMessage}
-          isVisible={showProgress}
-        />
-        <StatusMessage 
-          message={status.message}
-          type={status.type}
-        />
-      </main>
+      {isAuthenticated ? (
+        <main>
+          <UploadForm 
+            isAuthenticated={isAuthenticated}
+            onSubmit={uploadFiles}
+          />
+          <ProgressBar 
+            progress={progress}
+            message={progressMessage}
+            isVisible={showProgress}
+          />
+          <StatusMessage 
+            message={status.message}
+            type={status.type}
+          />
+        </main>
+      ) : (
+        <main>
+          <div className="auth-prompt">
+            <p>Please sign in with your Google account to upload images to your Google Drive.</p>
+          </div>
+        </main>
+      )}
     </div>
   );
 }

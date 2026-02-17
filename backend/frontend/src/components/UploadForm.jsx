@@ -65,7 +65,7 @@ export function UploadForm({ isAuthenticated, onSubmit }) {
         )}
       </div>
 
-      <button type="submit" disabled={!isValid}>
+      <button type="submit" disabled={!isValid} className="submit-btn">
         Upload Images
       </button>
     </form>

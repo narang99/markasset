@@ -34,7 +34,6 @@ app.post('/auth/google/signout', async (c) => {
     return c.text("already signed out");
   } else {
     const data = JSON.parse(val);
-    console.log("revoking token");
     await revokeToken(data.token);
       setCookie(c, "session_id", "", {
         httpOnly: true,
