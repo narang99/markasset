@@ -41,7 +41,8 @@ deploy: build
 		echo "Firebase not initialized. Run 'firebase init hosting' first."; \
 		exit 1; \
 	fi
-	firebase deploy --only hosting
+	npx wrangler pages deploy
+	# firebase deploy --only hosting
 
 # Open in browser for testing
 test:
