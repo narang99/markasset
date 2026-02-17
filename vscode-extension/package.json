@@ -22,20 +22,25 @@
         "command": "markasset.startSession",
         "title": "Start Upload Session",
         "category": "MarkAsset"
+      },
+      {
+        "command": "markasset.logout",
+        "title": "Logout from Google Drive",
+        "category": "MarkAsset"
       }
     ],
     "configuration": {
       "title": "MarkAsset",
       "properties": {
-        "markasset.firebaseProjectId": {
-          "type": "string",
-          "default": "markasset-project",
-          "description": "Firebase Project ID"
-        },
-        "markasset.firebaseApiKey": {
+        "markasset.googleClientId": {
           "type": "string",
           "default": "",
-          "description": "Firebase API Key"
+          "description": "Google OAuth 2.0 Client ID (Desktop app type)"
+        },
+        "markasset.googleClientSecret": {
+          "type": "string",
+          "default": "",
+          "description": "Google OAuth 2.0 Client Secret (Desktop app type — not truly secret, required by Google's API)"
         },
         "markasset.pollInterval": {
           "type": "number",
@@ -64,6 +69,7 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
-    "firebase": "^10.7.1"
+    "google-auth-library": "^10.5.0",
+    "googleapis": "^105.0.0"
   }
 }

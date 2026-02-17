@@ -5,45 +5,45 @@
 ## Project Overview
 MarkAsset is an app that streamlines the workflow of adding images to markdown documents. Instead of manually uploading photos from phone to laptop, users can:
 
-1. Generate a 3-digit code in VSCode/Zed editor 
+1. Generate a 4-character code in VSCode/Zed editor 
 2. Upload photos via web interface using the generated code
 3. Download assets directly into markdown folder from editor
 
-**Status**: ✅ **COMPLETE AND FUNCTIONAL** - VSCode extension + web upload interface working end-to-end
+**Status**: ✅ **COMPLETE AND FUNCTIONAL** - VSCode extension + web upload interface working end-to-end with Google Drive
 
 ## Architecture
-- **Database**: Firestore with user-scoped collections
-- **Storage**: Firebase Storage (`markasset-project.firebasestorage.app`)
-- **Frontend**: PWA web interface with offline capability
-- **Backend**: Serverless (Firestore + security rules only)
-- **VSCode**: TypeScript extension with Firebase SDK integration
+- **Authentication**: Google OAuth 2.0 for both web and VSCode
+- **Storage**: Google Drive (user's personal drive in MarkAsset folder)
+- **Session Management**: Google Drive folders and JSON files
+- **Frontend**: PWA web interface (`backend/public/`) with offline capability
+- **Backend**: Express.js server for Google OAuth handling
+- **VSCode**: TypeScript extension with Google Drive API integration
 - **Zed**: Native extension (paused due to documentation issues)
 
-## Database Structure
+## Google Drive Structure
 ```
-/users/{user_id}/meta/session_counter
-  - value: 0  // Atomic counter for code generation
+/MarkAsset/                           // Root folder in user's Google Drive
+  ├── {session_code}/                 // 4-character session folder (e.g., 'a1b2')
+  │   ├── session.json                // Session metadata
+  │   ├── image1.jpg                  // Uploaded files
+  │   └── image2.png
+  └── {another_session}/
+      ├── session.json
+      └── files...
 
-/users/{user_id}/sessions/{code}  
-  - created_at: timestamp
-  - expires_at: timestamp (TTL - 1 hour)
-  - files: array of file_ids
-  - status: "active" | "completed"
-
-/users/{user_id}/files/{file_id}
-  - session_code: string
-  - original_name: string  
-  - storage_path: string
-  - content_type: string
-  - size: number
-  - uploaded_at: timestamp
+session.json format:
+{
+  "created_at": "2024-01-01T12:00:00.000Z",
+  "expires_at": "2024-01-01T13:00:00.000Z",
+  "status": "active"
+}
 ```
 
 ## Code Generation Strategy
-- Per-user atomic counter with 3-digit codes (001-999, then cycles)
-- TTL handles expiry and cleanup automatically
-- Collision handling: Error out if session exists (rare after TTL)
-- No-auth phase: All users use `user_id = "anonymous"`
+- 4-character alphanumeric codes (a-z, 0-9): e.g., 'a1b2', 'x9y3'
+- Random generation with collision detection
+- Session expiry: 1 hour from creation
+- Cleanup: Expired sessions are automatically cleaned up during collision checks
 
 ## Editor Extensions
 
@@ -72,89 +72,89 @@ MarkAsset is an app that streamlines the workflow of adding images to markdown d
 **Status**: ✅ **COMPLETE AND FULLY FUNCTIONAL**
 
 **Commands**:
-- `MarkAsset: Generate Asset Upload Code` - Generate 3-digit code with Firebase session
-- `MarkAsset: Check Session Status` - Check session status and file count  
-- `MarkAsset: Download Assets` - Download files from Firebase Storage to workspace
+- `MarkAsset: Start Upload Session` - Generate 4-character code with Google Drive session
+- `MarkAsset: Logout from Google Drive` - Sign out from Google Drive
 
 **Implementation**:
 - ✅ TypeScript extension with proper VSCode API integration
-- ✅ Firebase SDK integration (replaced Axios with official SDK)
-- ✅ Atomic counter management with fallback to local generation
-- ✅ Session creation, validation, and status checking
-- ✅ File download from Firebase Storage with directory selection
+- ✅ Google Drive API integration with googleapis SDK
+- ✅ Google OAuth 2.0 authentication flow with refresh token storage
+- ✅ Random 4-character code generation with collision detection
+- ✅ Session creation, validation, and status checking in Google Drive
+- ✅ File download from Google Drive with directory selection
 - ✅ Progress notifications and error handling
 - ✅ Configuration through VSCode settings
 
 **Setup**:
 1. `cd vscode-extension && npm install && npm run compile`
 2. Press F5 in VSCode to launch Extension Development Host
-3. Configure Firebase settings in VSCode preferences:
-   - `markasset.firebaseProjectId`: `markasset-project`
-   - `markasset.firebaseApiKey`: `AIzaSyAk0nWceP8APJ1O25hG3iEMYnIfH5sFKMI`
+3. Configure Google OAuth settings in VSCode preferences:
+   - `markasset.googleClientId`: Your Google OAuth 2.0 Client ID
+   - `markasset.googleClientSecret`: Your Google OAuth 2.0 Client Secret
 
 ### Web Upload Interface Details  
-**Location**: `./web-upload/`
-**Status**: ✅ **COMPLETE PWA WITH OFFLINE SUPPORT**
+**Location**: `./backend/public/`
+**Status**: ✅ **COMPLETE PWA WITH GOOGLE DRIVE INTEGRATION**
 
 **Features**:
 - ✅ Responsive mobile-first design
-- ✅ 3-digit code input with validation
+- ✅ 4-character code input with validation
 - ✅ Multi-file image upload with progress tracking
-- ✅ Session validation against Firestore
-- ✅ Firebase Storage integration with SDK
+- ✅ Google OAuth 2.0 authentication
+- ✅ Session validation against Google Drive
+- ✅ Google Drive API integration for file uploads
 - ✅ PWA capabilities (manifest + service worker)
 - ✅ Offline caching for app shell
-- ✅ URL parameter support (`?code=123`)
+- ✅ URL parameter support (`?code=a1b2`)
 
 **Setup**:
-1. `cd web-upload && npx serve .`
+1. `cd backend && npm install && npm start`
 2. Access at `http://localhost:3000`
-3. Firebase config already set in `app.js`
+3. Google OAuth credentials configured in backend
 
-**Deployment**: Ready for Firebase Hosting, Netlify, or any static host
+**Deployment**: Ready for any hosting platform supporting Node.js
 
-## Firebase Configuration
-**Project**: `markasset-project`
-**API Key**: `AIzaSyAk0nWceP8APJ1O25hG3iEMYnIfH5sFKMI`
-**Storage Bucket**: `markasset-project.firebasestorage.app`
+## Google Drive Integration
+**Authentication**: OAuth 2.0 with drive.file scope
+**Storage**: User's personal Google Drive in MarkAsset folder
+**API Version**: Drive v3
 
 **Setup Steps**:
-1. ✅ Firebase project created: `markasset-project`
-2. ✅ Firestore Database enabled (test mode)
-3. ✅ Firebase Storage enabled
-4. ✅ Security rules configured for anonymous access
-5. ✅ Storage bucket paths aligned across all components
+1. ✅ Google Cloud Console project created
+2. ✅ Google Drive API enabled
+3. ✅ OAuth 2.0 credentials configured (Desktop app type for VSCode, Web app type for backend)
+4. ✅ OAuth consent screen configured
+5. ✅ Scopes: `https://www.googleapis.com/auth/drive.file`
 
 ## End-to-End Testing
 **Complete Workflow Test**:
-1. **Generate Code**: Run `MarkAsset: Generate Asset Upload Code` in VSCode
-2. **Upload Files**: Open web interface, enter code, select images, upload
-3. **Check Status**: Run `MarkAsset: Check Session Status` in VSCode with code
-4. **Download Files**: Run `MarkAsset: Download Assets` in VSCode, select folder
-5. **Verify**: Check that files appear in selected workspace folder
+1. **Generate Code**: Run `MarkAsset: Start Upload Session` in VSCode (authenticate with Google if needed)
+2. **Upload Files**: Open web interface, sign in with Google, enter 4-character code, select images, upload
+3. **Download Files**: In VSCode webview, select target folder and click "Download All"
+4. **Verify**: Check that files appear in selected workspace folder
 
-**Test Results**: ✅ All steps working correctly
+**Test Results**: ✅ All steps working correctly with Google Drive
 
 ## Components Status - FINAL
-- [x] ✅ **VSCode Extension** - Complete with Firebase SDK, all commands functional
-- [x] ✅ **Web Upload Interface** - PWA with offline support, Firebase integration
-- [x] ✅ **Firebase Integration** - Firestore + Storage working across all components
+- [x] ✅ **VSCode Extension** - Complete with Google Drive API, OAuth authentication functional
+- [x] ✅ **Web Upload Interface** - PWA with offline support, Google Drive integration
+- [x] ✅ **Google Drive Integration** - OAuth + Drive API working across all components
 - [x] ✅ **End-to-End Flow** - Generate → Upload → Download workflow tested
 - [x] ⚠️ **Zed Extension** - Paused due to documentation/API issues
-- [ ] 🔮 **Authentication** - Future enhancement for multi-user support
+- [x] ✅ **Authentication** - Google OAuth 2.0 for multi-user support
 
 ## Quick Start Guide
 **For VSCode Extension**:
 ```bash
 cd vscode-extension
 npm install && npm run compile
-# Press F5 in VSCode, configure Firebase settings
+# Press F5 in VSCode, configure Google OAuth settings
 ```
 
 **For Web Interface**:
 ```bash  
-cd web-upload
-npx serve .
+cd backend
+npm install && npm start
 # Access at http://localhost:3000
 ```
 
@@ -162,17 +162,18 @@ npx serve .
 1. Generate code in VSCode → 2. Upload files on web → 3. Download in VSCode
 
 ## Deployment Notes
-- **Cost**: $0/month on Firebase free tier
+- **Cost**: Free using user's personal Google Drive storage
 - **VSCode Extension**: Ready for VS Code Marketplace publishing
-- **Web App**: Ready for Firebase Hosting, Netlify, Vercel deployment
-- **Firebase**: Anonymous auth, no user management needed
-- **Storage**: Automatic cleanup via TTL on Firestore sessions
+- **Web App**: Ready for Heroku, Railway, Vercel, or any Node.js hosting
+- **Google OAuth**: User-based authentication, each user has isolated storage
+- **Storage**: Files stored in user's personal Google Drive, automatic session cleanup
 
 ## Development Architecture
-- **VSCode**: TypeScript + Firebase SDK (official, reliable)
-- **Web**: Vanilla JS + Firebase SDK (no frameworks, fast loading)
+- **VSCode**: TypeScript + Google Drive API (googleapis SDK)
+- **Web**: Vanilla JS + Google Drive API (no frameworks, fast loading)
+- **Backend**: Node.js/Express + Google OAuth 2.0
 - **Zed**: Rust WASM + HTTP API (paused due to API docs)
-- **Firebase**: Firestore + Storage (serverless, scalable)
+- **Google Drive**: Drive v3 API (user storage, scalable)
 
 ## Webview Code Style (VSCode Extension)
 The webview rendering follows a strict separation between data, rendering, and orchestration:
@@ -184,4 +185,4 @@ The webview rendering follows a strict separation between data, rendering, and o
 - **Never hide errors silently**: When user-provided options or settings are invalid (e.g. relative paths, reserved values), show the option as disabled with a visible error message explaining why. Never silently skip or filter out invalid entries — the user must see what went wrong.
 
 ---
-**Last Updated**: 2026-02-15 - ✅ **PROJECT COMPLETE** - VSCode extension + PWA web interface fully functional with end-to-end testing verified
+**Last Updated**: 2026-02-17 - ✅ **MIGRATED TO GOOGLE DRIVE** - VSCode extension + PWA web interface fully migrated from Firebase to Google Drive with end-to-end testing verified

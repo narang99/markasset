@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { CloudProvider } from './cloud-provider';
-import { FirebaseProvider } from './firebase-provider';
+import { GoogleDriveProvider } from './google-drive-provider';
+import { GoogleAuthService } from './auth';
 import * as path from 'path';
 import { FolderOption, WorkspaceOption, renderFolderPicker, renderWorkspacePicker, renderFilesList, renderStateContent, renderStyles, renderScript, renderPage } from './webview-renderers';
 
 export class UploadSessionWebview {
   private panel: vscode.WebviewPanel | undefined;
   private provider: CloudProvider;
+  private authService: GoogleAuthService;
   private pollingInterval: NodeJS.Timeout | undefined;
   private currentSessionCode: string | undefined;
   private lastActiveFileDirname: string | undefined;
@@ -14,8 +16,9 @@ export class UploadSessionWebview {
   private lastState: { state: string; message: string; files?: any[] } | undefined;
   private disposables: vscode.Disposable[] = [];
 
-  constructor() {
-    this.provider = new FirebaseProvider();
+  constructor(private context: vscode.ExtensionContext) {
+    this.authService = new GoogleAuthService(context);
+    this.provider = new GoogleDriveProvider(this.authService);
   }
 
   public async show() {
@@ -56,6 +59,9 @@ export class UploadSessionWebview {
     this.panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case 'signIn':
+            await this.handleSignIn();
+            break;
           case 'downloadFiles':
             await this.downloadFiles(message.folder);
             break;
@@ -80,6 +86,12 @@ export class UploadSessionWebview {
 
   private async startSession() {
     try {
+      // Check authentication first
+      if (!await this.authService.isAuthenticated()) {
+        this.updateWebview('auth', 'Sign in to get started');
+        return;
+      }
+
       // Show loading state
       this.updateWebview('loading', 'Generating session code...');
 
@@ -92,6 +104,16 @@ export class UploadSessionWebview {
 
     } catch (error) {
       this.updateWebview('error', `Failed to generate session: ${error}`);
+    }
+  }
+
+  private async handleSignIn() {
+    try {
+      this.updateWebview('loading', 'Opening browser for sign-in...');
+      await this.authService.authenticate();
+      await this.startSession();
+    } catch (error) {
+      this.updateWebview('error', `Sign-in failed: ${error}`);
     }
   }
 
