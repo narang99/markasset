@@ -31,18 +31,8 @@ clean:
 	rm -rf Thumbs.db
 	@echo "Clean complete"
 
-# Deploy to Firebase Hosting (requires firebase-tools and project setup)
 deploy: build
-	@if ! command -v firebase >/dev/null 2>&1; then \
-		echo "Firebase CLI not found. Installing..."; \
-		npm install -g firebase-tools; \
-	fi
-	@if [ ! -f firebase.json ]; then \
-		echo "Firebase not initialized. Run 'firebase init hosting' first."; \
-		exit 1; \
-	fi
 	npx wrangler pages deploy
-	# firebase deploy --only hosting
 
 # Open in browser for testing
 test:
