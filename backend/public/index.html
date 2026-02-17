@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarkAsset Upload</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#458588">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="MarkAsset">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
+  <link rel="shortcut icon" href="./icons/favicon.ico">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><img src="./icons/favicon-32x32.png" alt="MarkAsset" style="vertical-align: middle; margin-right: 8px;"> MarkAsset Upload</h1>
+      <p>Upload images with your 3-digit code</p>
+      <div class="auth-section">
+        <div id="authStatus" style="display: none;"></div>
+        <button id="loginBtn" class="auth-btn">Login with Google</button>
+        <button id="logoutBtn" class="auth-btn" style="display: none;">Sign Out</button>
+      </div>
+    </header>
+
+    <main>
+      <form id="uploadForm">
+        <div class="form-group">
+          <label for="sessionCode">Session Code</label>
+          <input
+            type="text"
+            id="sessionCode"
+            placeholder="123"
+            maxlength="3"
+            pattern="[0-9]{3}"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="fileInput">Select Images</label>
+          <input
+            type="file"
+            id="fileInput"
+            accept="image/*"
+            multiple
+            required
+          >
+          <div class="file-info" id="fileInfo"></div>
+        </div>
+
+        <button type="submit" id="uploadBtn" disabled>
+          <span class="btn-text">Upload Images</span>
+          <span class="btn-loading" style="display: none;">Uploading...</span>
+        </button>
+      </form>
+
+      <div class="progress" id="progressSection" style="display: none;">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">0%</div>
+      </div>
+
+      <div class="status" id="statusSection"></div>
+    </main>
+  </div>
+
+  <script type="module" src="app.js"></script>
+  <script>
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('SW registered'))
+          .catch(err => console.log('SW registration failed'));
+      });
+    }
+
+  </script>
+</body>
+</html>
