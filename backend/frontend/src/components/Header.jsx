@@ -16,9 +16,9 @@ export function Header({ user, isAuthenticated, onLogin, onLogout }) {
           alt="MarkAsset" 
           style={{ verticalAlign: 'middle', marginRight: '8px' }} 
         />
-        MarkAsset Upload
+        MarkAsset
       </h1>
-      <p>Upload images with your 4-character code</p>
+      <p>Sync files between your camera and VSCode</p>
       {!isAuthenticated && (
         <div className="auth-section">
           <button className="auth-btn auth-btn-primary" onClick={onLogin}>
