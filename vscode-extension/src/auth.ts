@@ -104,6 +104,7 @@ export class GoogleAuthService {
           code_challenge: codeChallenge,
           prompt: 'consent',
         });
+        console.log("auth urlllll", authUrl)
 
         vscode.env.openExternal(vscode.Uri.parse(authUrl));
       });

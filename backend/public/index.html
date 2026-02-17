@@ -19,7 +19,7 @@
   <div class="container">
     <header>
       <h1><img src="./icons/favicon-32x32.png" alt="MarkAsset" style="vertical-align: middle; margin-right: 8px;"> MarkAsset Upload</h1>
-      <p>Upload images with your 3-digit code</p>
+      <p>Upload images with your 4-character code</p>
       <div class="auth-section">
         <div id="authStatus" style="display: none;"></div>
         <button id="loginBtn" class="auth-btn">Login with Google</button>
@@ -34,9 +34,9 @@
           <input
             type="text"
             id="sessionCode"
-            placeholder="123"
-            maxlength="3"
-            pattern="[0-9]{3}"
+            placeholder="a1b2"
+            maxlength="4"
+            pattern="[a-z0-9]{4}"
             required
           >
         </div>
@@ -70,6 +70,9 @@
     </main>
   </div>
 
+  <!-- Google APIs JavaScript Client Library -->
+  <script src="https://apis.google.com/js/api.js"></script>
+  
   <script type="module" src="app.js"></script>
   <script>
     // Register service worker

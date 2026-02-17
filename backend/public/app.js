@@ -1,22 +1,137 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getFirestore, doc, getDoc, updateDoc, arrayUnion, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { getStorage, ref, uploadBytes } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAk0nWceP8APJ1O25hG3iEMYnIfH5sFKMI",
-  authDomain: "markasset-project.firebaseapp.com",
-  projectId: "markasset-project",
-  storageBucket: "markasset-project.firebasestorage.app",
-  messagingSenderId: "442356955922",
-  appId: "1:442356955922:web:276ea9b96d36862f2e11cb"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-const USER_ID = 'anonymous';
 const BACKEND_URL = ''; // Same origin, no need for full URL
+
+// Google Drive API helper class using gapi
+class GoogleDriveAPI {
+  constructor(accessToken) {
+    this.accessToken = accessToken;
+    this.gapiInitialized = false;
+  }
+
+  async initializeGapi() {
+    if (this.gapiInitialized) return;
+
+    return new Promise((resolve, reject) => {
+      if (typeof gapi === 'undefined') {
+        reject(new Error('Google API client not loaded'));
+        return;
+      }
+
+      gapi.load('client', async () => {
+        try {
+          await gapi.client.init({
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+          });
+          
+          // Set the access token
+          gapi.client.setToken({ access_token: this.accessToken });
+          this.gapiInitialized = true;
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+  }
+
+  async findMarkAssetFolder() {
+    await this.initializeGapi();
+    
+    const response = await gapi.client.drive.files.list({
+      q: "name='MarkAsset' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+      fields: 'files(id)'
+    });
+    
+    if (response.result.files && response.result.files.length > 0) {
+      return response.result.files[0].id;
+    }
+
+    // Create MarkAsset folder if it doesn't exist
+    const createResponse = await gapi.client.drive.files.create({
+      resource: {
+        name: 'MarkAsset',
+        mimeType: 'application/vnd.google-apps.folder'
+      },
+      fields: 'id'
+    });
+
+    return createResponse.result.id;
+  }
+
+  async findSessionFolder(code, rootFolderId) {
+    await this.initializeGapi();
+    
+    const response = await gapi.client.drive.files.list({
+      q: `name='${code}' and '${rootFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+      fields: 'files(id)'
+    });
+    
+    return response.result.files && response.result.files.length > 0 ? response.result.files[0].id : null;
+  }
+
+  async uploadFile(sessionFolderId, file) {
+    await this.initializeGapi();
+
+    const boundary = '-------314159265358979323846';
+    const delimiter = "\r\n--" + boundary + "\r\n";
+    const close_delim = "\r\n--" + boundary + "--";
+
+    const metadata = {
+      'name': file.name,
+      'parents': [sessionFolderId]
+    };
+
+    // Convert file to array buffer
+    const fileData = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(fileData);
+    let binaryString = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binaryString += String.fromCharCode(uint8Array[i]);
+    }
+
+    const multipartRequestBody =
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      JSON.stringify(metadata) +
+      delimiter +
+      'Content-Type: ' + file.type + '\r\n\r\n' +
+      binaryString +
+      close_delim;
+
+    const request = await gapi.client.request({
+      'path': '/upload/drive/v3/files',
+      'method': 'POST',
+      'params': { 'uploadType': 'multipart' },
+      'headers': {
+        'Content-Type': 'multipart/related; boundary="' + boundary + '"'
+      },
+      'body': multipartRequestBody
+    });
+
+    return request.result;
+  }
+
+  async getSessionFiles(sessionFolderId) {
+    await this.initializeGapi();
+    
+    const response = await gapi.client.drive.files.list({
+      q: `'${sessionFolderId}' in parents and name!='session.json' and trashed=false`,
+      fields: 'files(id,name,size,mimeType)'
+    });
+    
+    return response.result.files || [];
+  }
+
+  async getFileContent(fileId) {
+    await this.initializeGapi();
+    
+    const response = await gapi.client.drive.files.get({
+      fileId: fileId,
+      alt: 'media'
+    });
+    
+    return response.body;
+  }
+}
 
 class UploadManager {
   constructor() {
@@ -34,6 +149,7 @@ class UploadManager {
     this.authStatus = document.getElementById('authStatus');
 
     this.accessToken = null;
+    this.driveAPI = null;
 
     this.initializeEventListeners();
     this.checkForCodeInURL();
@@ -51,7 +167,7 @@ class UploadManager {
   checkForCodeInURL() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    if (code && /^\d{3}$/.test(code)) {
+    if (code && /^[a-z0-9]{4}$/.test(code)) {
       this.sessionCodeInput.value = code;
       this.validateForm();
     }
@@ -65,7 +181,8 @@ class UploadManager {
       
       if (response.ok) {
         const data = await response.json();
-        this.accessToken = data.token;
+        this.accessToken = data.token.token;
+        this.driveAPI = new GoogleDriveAPI(this.accessToken);
         this.updateAuthUI(true, data.user);
         
         console.log('🎉 Google OAuth Success!');
@@ -94,9 +211,10 @@ class UploadManager {
   }
 
   validateForm() {
-    const hasCode = /^\d{3}$/.test(this.sessionCodeInput.value);
+    const hasCode = /^[a-z0-9]{4}$/.test(this.sessionCodeInput.value);
     const hasFiles = this.fileInput.files.length > 0;
-    this.uploadBtn.disabled = !hasCode || !hasFiles;
+    const isAuthenticated = this.accessToken !== null;
+    this.uploadBtn.disabled = !hasCode || !hasFiles || !isAuthenticated;
   }
 
   async handleSubmit(e) {
@@ -116,23 +234,55 @@ class UploadManager {
   }
 
   async validateSession(sessionCode) {
-    const sessionRef = doc(db, 'users', USER_ID, 'sessions', sessionCode);
-    const sessionSnap = await getDoc(sessionRef);
+    if (!this.driveAPI) {
+      throw new Error('Not authenticated with Google Drive');
+    }
 
-    if (!sessionSnap.exists()) {
+    const rootFolderId = await this.driveAPI.findMarkAssetFolder();
+    const sessionFolderId = await this.driveAPI.findSessionFolder(sessionCode, rootFolderId);
+
+    if (!sessionFolderId) {
       throw new Error(`Session ${sessionCode} not found or expired`);
     }
 
-    const sessionData = sessionSnap.data();
-    if (sessionData.status !== 'active') {
-      throw new Error(`Session ${sessionCode} is no longer active`);
+    // Check if session.json exists and is valid
+    try {
+      await this.driveAPI.initializeGapi();
+      
+      const sessionFiles = await gapi.client.drive.files.list({
+        q: `'${sessionFolderId}' in parents and name='session.json' and trashed=false`,
+        fields: 'files(id)'
+      });
+
+      if (!sessionFiles.result.files || sessionFiles.result.files.length === 0) {
+        throw new Error(`Session ${sessionCode} is invalid (missing session data)`);
+      }
+
+      // Get session data to check expiry
+      const sessionFileId = sessionFiles.result.files[0].id;
+      const sessionContent = await this.driveAPI.getFileContent(sessionFileId);
+
+      const sessionData = JSON.parse(sessionContent);
+      const expiresAt = new Date(sessionData.expires_at);
+      const now = new Date();
+
+      if (expiresAt < now) {
+        throw new Error(`Session ${sessionCode} has expired`);
+      }
+
+      return sessionFolderId;
+    } catch (error) {
+      if (error.message.includes('expired') || error.message.includes('invalid')) {
+        throw error;
+      }
+      throw new Error(`Session ${sessionCode} validation failed: ${error.message}`);
     }
   }
 
   async uploadFiles(sessionCode, files) {
     this.showProgress();
 
-    const uploadedFileIds = [];
+    const sessionFolderId = await this.validateSession(sessionCode);
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -141,50 +291,16 @@ class UploadManager {
       this.updateProgress(progress, `Uploading ${file.name}...`);
 
       try {
-        const fileId = await this.uploadFile(sessionCode, file);
-        uploadedFileIds.push(fileId);
+        await this.driveAPI.uploadFile(sessionFolderId, file);
       } catch (error) {
         console.error(`Failed to upload ${file.name}:`, error);
         throw new Error(`Failed to upload ${file.name}: ${error.message}`);
       }
     }
 
-    await this.updateSessionFiles(sessionCode, uploadedFileIds);
     this.hideProgress();
   }
 
-  async uploadFile(sessionCode, file) {
-    const fileId = this.generateFileId();
-    const storagePath = `users/${USER_ID}/sessions/${sessionCode}/${fileId}`;
-
-    const storageRef = ref(storage, storagePath);
-    await uploadBytes(storageRef, file);
-
-    const fileMetadata = {
-      session_code: sessionCode,
-      original_name: file.name,
-      storage_path: storagePath,
-      content_type: file.type,
-      size: file.size,
-      uploaded_at: new Date()
-    };
-
-    const fileRef = doc(db, 'users', USER_ID, 'files', fileId);
-    await setDoc(fileRef, fileMetadata);
-
-    return fileId;
-  }
-
-  async updateSessionFiles(sessionCode, fileIds) {
-    const sessionRef = doc(db, 'users', USER_ID, 'sessions', sessionCode);
-    await updateDoc(sessionRef, {
-      files: arrayUnion(...fileIds)
-    });
-  }
-
-  generateFileId() {
-    return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-  }
 
   showProgress() {
     this.uploadBtn.querySelector('.btn-text').style.display = 'none';
@@ -226,6 +342,7 @@ class UploadManager {
       
       if (response.ok) {
         this.accessToken = null;
+        this.driveAPI = null;
         this.updateAuthUI(false);
         console.log('Successfully signed out');
       } else {
